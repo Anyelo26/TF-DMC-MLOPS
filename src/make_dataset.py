@@ -1,0 +1,101 @@
+import pandas as pd
+import os
+
+# Columnas categóricas predefinidas para incluir siempre
+CAT_COLS = ["MSZoning", "Utilities", "BldgType", "Heating", "KitchenQual", "SaleCondition", "LandSlope"]
+
+def read_file_csv(filename):
+    path = os.path.join('../data/raw/', filename)
+    # Agregamos validación básica
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"No se encontró el archivo: {path}")
+    df = pd.read_csv(path).set_index('ID')
+    print(f'{filename} cargado correctamente | Shape: {df.shape}')
+    return df
+
+def data_cleaning(df):
+    df_cleaned = df.dropna()
+    # OJO: Al hacer dropna en todo, podrías perder mucha data. 
+    # En producción se suelen imputar valores, no borrar filas.
+    return df_cleaned
+
+def get_best_features(df_train, target_col="SalePrice", threshold=0.5):
+    """
+    Esta función SOLO se usa con el set de entrenamiento para DECIDIR qué columnas usar.
+    """
+    # 1. Correlación numérica
+    # Seleccionamos solo numéricas para evitar errores en .corr()
+    numeric_df = df_train.select_dtypes(include=['number'])
+    corr = numeric_df.corr()[target_col]
+    
+    # Filtramos por umbral positivo o negativo
+    important_num_cols = list(corr[(corr > threshold) | (corr < -threshold)].index)
+    
+    # Aseguramos que el target esté en la lista para no perderlo en el train
+    if target_col in important_num_cols:
+        important_num_cols.remove(target_col)
+        
+    # 2. Unimos con las categóricas predefinidas
+    selected_features = important_num_cols + CAT_COLS
+    
+    print(f"Features seleccionados ({len(selected_features)}): {selected_features}")
+    return selected_features
+
+def data_transformation(df, selected_columns, is_train=False, target_col="SalePrice"):
+    """
+    Aplica las transformaciones y filtra las columnas.
+    """
+    df_transformed = df.copy()
+    
+    # Ejemplo de tu transformación
+    df_transformed['New_Column'] = df_transformed.select_dtypes(include=['number']).sum(axis=1)
+    
+    # IMPORTANTE: Si creas 'New_Column' y quieres usarla, agrégala a la lista
+    # Si no, se filtrará y desaparecerá en el paso siguiente.
+    
+    # Filtrado de columnas
+    # Verificamos que las columnas existan antes de filtrar para evitar errores
+    cols_to_keep = [c for c in selected_columns if c in df_transformed.columns]
+    
+    final_df = df_transformed[cols_to_keep].copy()
+    
+    # Si es entrenamiento, necesitamos mantener el Target. 
+    # Si es test, el target podría no existir.
+    if is_train and target_col in df:
+        final_df[target_col] = df[target_col]
+        
+    print('Datos transformados y filtrados correctamente')
+    return final_df
+
+def data_export(df, filename):
+    output_path = os.path.join('../data/processed/', filename)
+    df.to_csv(output_path)
+    print(f'{filename} exportado correctamente | Shape: {df.shape}')
+
+def main():
+    # 1. Proceso de Entrenamiento (Master)
+    print("--- Procesando TRAIN ---")
+    df_tr = read_file_csv("train.csv")
+    df_tr_cleaned = data_cleaning(df_tr)
+    
+    # PASO CLAVE: Aquí definimos la "Inteligencia" de selección
+    best_features = get_best_features(df_tr_cleaned)
+    
+    # Transformamos Train usando esas columnas
+    df_tr_processed = data_transformation(df_tr_cleaned, best_features, is_train=True)
+    data_export(df_tr_processed, "train_processed.csv")
+    
+    # ---------------------------------------------------------
+    
+    # 2. Proceso de Test (Esclavo de las reglas de Train)
+    print("\n--- Procesando TEST ---")
+    df_te = read_file_csv("test.csv")
+    df_te_cleaned = data_cleaning(df_te)
+    
+    # Transformamos Test usando LA MISMA LISTA 'best_features' obtenida arriba
+    # NO recalculamos correlaciones aquí.
+    df_te_processed = data_transformation(df_te_cleaned, best_features, is_train=False)
+    data_export(df_te_processed, "test_processed.csv")
+
+if __name__ == "__main__":
+    main()
