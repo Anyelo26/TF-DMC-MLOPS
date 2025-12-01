@@ -11,7 +11,6 @@ MODEL_PATH = '../models/best_model.pkl'
 SCALER_PATH = '../models/scaler.pkl'
 COLUMNS_PATH = '../models/model_columns.pkl'
 TARGET = "SalePrice"
-# CAT_COLS ya no se necesita aquí porque la data ya viene transformada
 
 def eval_model(filename):
     path = os.path.join('../data/processed', filename)
