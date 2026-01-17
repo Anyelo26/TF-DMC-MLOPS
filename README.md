@@ -8,17 +8,17 @@ To see the data dictionary, you could visit: <https://www.kaggle.com/competition
 
 ```text
 ├── LICENSE
-├── README.md          <- The top-level README for developers using this project.
+├── README.md          <- The top-level README for developers.
 ├── data
 │   ├── scores         <- Results from scoring model.
 │   ├── processed      <- The final, canonical data sets for modeling.
 │   └── raw            <- The original, immutable data dump.
 │
-├── models             <- Trained and serialized models, model predictions, or model summaries
+├── models             <- Trained models, predictions, or summaries
 │
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering)
+├── notebooks          <- Jupyter notebooks. Naming convention is number
 │
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
+├── requirements.txt   <- The requirements file for reproducing env.
 │                             generated with `pip freeze > requirements.txt`
 │
 ├── src                <- Source code for use in this project.
